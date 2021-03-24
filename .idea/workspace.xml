@@ -2,21 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="71335dad-5fc6-4f61-9512-94c32757f034" name="Default Changelist" comment="initial commit">
-      <change afterPath="$PROJECT_DIR$/AngularProject/my-app/src/app/app-routing.module.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AngularProject/my-app/src/app/app.component.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AngularProject/my-app/src/app/app.component.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AngularProject/my-app/src/app/app.component.spec.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AngularProject/my-app/src/app/app.component.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AngularProject/my-app/src/app/app.module.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AngularProject/my-app/src/assets/.gitkeep" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AngularProject/my-app/src/environments/environment.prod.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AngularProject/my-app/src/environments/environment.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AngularProject/my-app/src/favicon.ico" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AngularProject/my-app/src/index.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AngularProject/my-app/src/main.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AngularProject/my-app/src/polyfills.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AngularProject/my-app/src/styles.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AngularProject/my-app/src/test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/NodeProject/myapp/app.js" beforeDir="false" afterPath="$PROJECT_DIR$/NodeProject/myapp/app.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -36,6 +23,9 @@
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/NodeProject" />
+    <property name="node.js.detected.package.eslint" value="true" />
+    <property name="node.js.path.for.package.eslint" value="project" />
+    <property name="node.js.selected.package.eslint" value="(autodetect)" />
     <property name="nodejs_package_manager_path" value="npm" />
     <property name="settings.editor.selected.configurable" value="vcs.Git" />
     <property name="vue.rearranger.settings.migration" value="true" />
@@ -49,6 +39,16 @@
       <recent name="$PROJECT_DIR$/AngularProject" />
     </key>
   </component>
+  <component name="RunManager">
+    <configuration name="app.js" type="NodeJSConfigurationType" temporary="true" nameIsGenerated="true" path-to-js-file="$PROJECT_DIR$/NodeProject/myapp/app.js" working-dir="$PROJECT_DIR$/NodeProject/myapp">
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Node.js.app.js" />
+      </list>
+    </recent_temporary>
+  </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
@@ -59,7 +59,8 @@
       <updated>1616584978532</updated>
       <workItem from="1616584979615" duration="168000" />
       <workItem from="1616585650553" duration="66000" />
-      <workItem from="1616585718996" duration="387000" />
+      <workItem from="1616585718996" duration="474000" />
+      <workItem from="1616586470930" duration="4950000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit">
       <created>1616586024635</created>
@@ -68,7 +69,14 @@
       <option name="project" value="LOCAL" />
       <updated>1616586024635</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="initial commit">
+      <created>1616586111236</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1616586111236</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -84,6 +92,7 @@
         </entry>
       </map>
     </option>
+    <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="initial commit" />

@@ -47,6 +47,18 @@ async function memberCheck(isEmail) {
 }
 
 /**
+ * 특수 문자 제거
+ * @param str
+ * @returns {*}
+ */
+async function regExp(str) {
+    return await new Promise((resolve, reject) => {
+        let reg = /[\{\}\[\]\/?.,;:|\)*~`!^\-_+<>@\#$%&\\\=\(\'\"]/gi
+        resolve(reg.test(str) ? str.replace(reg, "") : str)
+    })
+}
+
+/**
  * --------------------------------------------------------------------------------------------------------
  * API 구현 부분
  * --------------------------------------------------------------------------------------------------------
@@ -107,72 +119,64 @@ app.post("/member/email", (req, res) => {
             else {
                 let isEmail = rows.length === 0 ? null : rows[0].member_email
                 memberCheck(isEmail).then(memberCheckValue => {
-                    // 최초 가입 시.
-                    if (memberCheckValue === 200) {
-                        crypto.generateKey().then(keyValue => {
-                            let authKey = keyValue
-                            let today = new Date()
-                            let tomorrow = new Date(today.setDate(today.getDate() + 1))
-
-                            let insertEmailAuth = "insert into email_auth(email_key, email_auth_flag, email_date, email_dispose, rec_email, temp_chosen_agree) values(?, ?, ?, ?, ?, ?);"
-                            let param = [authKey, 0, tomorrow, 0, tempMemberEmail, req.cookies.chosen_agree]
-
-                            conn.query(insertEmailAuth, param, function (error, rows, fields) {
-                                if (error)
-                                    console.error(error)
-                                else {
-                                    console.log("Success insert emailAuthData")
+                    crypto.generateKey().then(keyValue => {
+                        crypto.getSalt().then(salt => {
+                            crypto.encryptByHash(keyValue, salt).then(tempAuthKey => {
+                                regExp(tempAuthKey).then(authKey => {
+                                    let today = new Date()
+                                    let tomorrow = new Date(today.setDate(today.getDate() + 1))
                                     let urlAuthEmail = "http://localhost:3000/member/email-check/" + authKey
-                                    sendEmail(tempMemberEmail, urlAuthEmail).then(mailContents => {
-                                        transporter.sendMail(mailContents, function (error, info) {
+                                    let insertEmailAuth = "insert into email_auth(email_key, email_auth_flag, email_date, email_dispose, rec_email, temp_chosen_agree) values(?, ?, ?, ?, ?, ?);"
+                                    let insertParam = [authKey, 0, tomorrow, 0, tempMemberEmail, req.cookies.chosen_agree]
+                                    // 최초 가입 시.
+                                    if (memberCheckValue === 200) {
+                                        conn.query(insertEmailAuth, insertParam, function (error, rows, fields) {
                                             if (error)
                                                 console.error(error)
-                                            else {
-                                                // 이메일 인증 코드 전송 완료.
-                                                res.clearCookie("chosen_agree").status(200).send(true)
-                                                console.log(info.response)
-                                            }
+                                            else
+                                                console.log("Success insert emailAuthData")
                                         })
-                                    })
-                                }
-                            })
-                        })
-                        // 탈퇴 후 가입 시.
-                    } else if (memberCheckValue === 401 && rows[0].member_secede === 1) {
-                        crypto.generateKey().then(key => {
-                            let authKey = key
-                            let today = new Date()
-                            let tomorrow = new Date(today.setDate(today.getDate() + 1))
-
-                            let insertEmailAuthSql = "insert into email_auth(email_key, email_auth_flag, email_date, email_dispose, rec_email, temp_chosen_agree) values(?, ?, ?, ?, ?, ?);"
-                            let insertParam = [authKey, 0, tomorrow, 0, tempMemberEmail, req.cookies.chosen_agree]
-
-                            conn.query(insertEmailAuthSql, insertParam, function (error, rows, fields) {
-                                if (error)
-                                    console.error(error)
-                                else {
-                                    console.log("Success insert emailAuthData")
-                                    let urlEmail = "http://localhost:3000/member/email-check/" + authKey
-                                    sendEmail(tempMemberEmail, urlEmail).then(mailContents => {
-                                        transporter.sendMail(mailContents, function (error, info) {
+                                        sendEmail(tempMemberEmail, urlAuthEmail).then(mailContents => {
+                                            transporter.sendMail(mailContents, function (error, info) {
+                                                if (error)
+                                                    console.error(error)
+                                                else {
+                                                    // 이메일 인증 코드 전송 완료.
+                                                    res.clearCookie("chosen_agree").status(200).send(true)
+                                                    console.log(info.response)
+                                                }
+                                            })
+                                        })
+                                    }
+                                    // 탈퇴 후 가입 시.
+                                    else if (memberCheckValue === 401 && rows[0].member_secede === 1) {
+                                        conn.query(insertEmailAuth, insertParam, function (error, rows, fields) {
                                             if (error)
                                                 console.error(error)
-                                            else {
-                                                // 이메일 인증 코드 전송 완료.
-                                                res.clearCookie("chosen_agree").status(200).send(true)
-                                                console.log(info.response)
-                                            }
+                                            else
+                                                console.log("Success insert emailAuthData")
                                         })
-                                    })
-                                }
+                                        sendEmail(tempMemberEmail, urlAuthEmail).then(mailContents => {
+                                            transporter.sendMail(mailContents, function (error, info) {
+                                                if (error)
+                                                    console.error(error)
+                                                else {
+                                                    // 이메일 인증 코드 전송 완료.
+                                                    res.clearCookie("chosen_agree").status(200).send(true)
+                                                    console.log(info.response)
+                                                }
+                                            })
+                                        })
+                                    }
+                                    // 이미 가입 되어 있고, 탈퇴 하지 않은 경우.
+                                    else {
+                                        // memberCheckValue === 401 && rows[0].member_secede === 0
+                                        res.status(memberCheckValue).send(false)
+                                    }
+                                })
                             })
                         })
-                    }
-                    // 이미 가입 되어 있고, 탈퇴 하지 않은 경우.
-                    else {
-                        // memberCheckValue === 401 && rows[0].member_secede === 0
-                        res.status(memberCheckValue).send(false)
-                    }
+                    })
                 })
             }
         })
@@ -182,7 +186,7 @@ app.post("/member/email", (req, res) => {
 // 4. 이메일 인증
 app.get(/email-check/, (req, res) => {
     let parse = req.path.split("/")
-    let authKey = parse[3] * 1
+    let authKey = parse[3]
     if (authKey === undefined)
         res.status(401).send(false)
     else {
@@ -518,28 +522,35 @@ app.post("/member/pw/find", (req, res) => {
                     else {
                         // 정지, 탈퇴 여부 체크
                         if (rows[0].member_ban === 0 && rows[0].member_secede === 0) {
-                            crypto.generateKey().then(key => {
-                                let today = new Date()
-                                let tomorrow = new Date(today.setDate(today.getDate() + 1))
-                                let insertSql = "insert into pw_find(pw_key, pw_edit, pw_date, pw_dispose, member_email) values(?, ?, ?, ?, ?)"
-                                let insertParam = [key, 0, tomorrow, 0, rows[0].member_email]
-                                conn.query(insertSql, insertParam, function (error, rows, fields) {
-                                    if (error)
-                                        console.error(error)
-                                    else {
-                                        let urlPassword = "http://localhost:3000/member/pw/reset-redirect/" + key
-                                        sendEmail(isEmail, urlPassword).then(mailContents => {
-                                            transporter.sendMail(mailContents, function (error, info) {
+                            crypto.generateKey().then(authKey => {
+                                crypto.getSalt().then(salt => {
+                                    crypto.encryptByHash(authKey, salt).then(tempKey => {
+                                        regExp(tempKey).then(key => {
+                                            let today = new Date()
+                                            let tomorrow = new Date(today.setDate(today.getDate() + 1))
+                                            let insertSql = "insert into pw_find(pw_key, pw_edit, pw_date, pw_dispose, member_email) values(?, ?, ?, ?, ?)"
+                                            let insertParam = [key, 0, tomorrow, 0, rows[0].member_email]
+                                            conn.query(insertSql, insertParam, function (error, rows, fields) {
                                                 if (error)
                                                     console.error(error)
-                                                else {
-                                                    // 이메일 인증 코드 전송 완료.
-                                                    res.status(200).send(true)
-                                                    console.log(info.response)
-                                                }
+                                                else
+                                                    console.log("insert query is executed.")
+                                            })
+
+                                            let urlPassword = "http://localhost:3000/member/pw/reset-redirect/" + key
+                                            sendEmail(isEmail, urlPassword).then(mailContents => {
+                                                transporter.sendMail(mailContents, function (error, info) {
+                                                    if (error)
+                                                        console.error(error)
+                                                    else {
+                                                        // 이메일 인증 코드 전송 완료.
+                                                        res.status(200).send(true)
+                                                        console.log(info.response)
+                                                    }
+                                                })
                                             })
                                         })
-                                    }
+                                    })
                                 })
                             })
                         } else
@@ -555,7 +566,7 @@ app.post("/member/pw/find", (req, res) => {
 // 10. 비밀번호 재설정 바로가기
 app.get(/reset-redirect/, (req, res) => {
     let parse = req.path.split("/")
-    let pwKey = parse[4] * 1
+    let pwKey = parse[4]
     if (pwKey === undefined)
         res.status(401).send(false)
     else {
