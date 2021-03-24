@@ -1,17 +1,22 @@
+/**
+ * --------------------------------------------------------------------------------------------------------
+ * 모듈/필드 변수 부분
+ * --------------------------------------------------------------------------------------------------------
+ */
 const express = require("express")
+const cookieParser = require("cookie-parser")
+const mailer = require("./config/mail_config.js")
+const databaseConfig = require("./config/database_config.js")
+const sessionConfig = require("./config/session_config.js")
+const crypto = require("./config/crypto_config.js")
 const app = express()
 const port = 3000
-const mailer = require("./config/mail_config.js")
 const transporter = mailer.init()
-const databaseConfig = require("./config/database_config.js")
 const conn = databaseConfig.init()
 databaseConfig.connect(conn)
 app.use(express.json())
-const sessionConfig = require("./config/session_config.js")
 app.use(sessionConfig.init())
-const cookieParser = require("cookie-parser")
 app.use(cookieParser())
-const crypto = require("./config/crypto_config")
 
 /**
  * --------------------------------------------------------------------------------------------------------
@@ -64,38 +69,10 @@ async function regExp(str) {
  * --------------------------------------------------------------------------------------------------------
  */
 
-// 1. 사용자 조회
-app.post("/member/check", (req, res) => {
-    let checkEmail = req.body.member_email
-    if (checkEmail === undefined)
-        res.status(401).send(false)
-    else {
-        let emailCheckSql = "select member_email, member_secede from member where member_email = ?;"
-        let selectParam = [checkEmail]
-        conn.query(emailCheckSql, selectParam, function (error, rows, fields) {
-            if (error)
-                console.error(error)
-            else {
-                let isEmail = rows.length === 0 ? null : rows[0].member_email
-                memberCheck(isEmail).then(value => {
-                    // 중복된 이메일이 없음
-                    if (value === 200)
-                        res.status(200).send("OK1")
-                    else if (value === 401) {
-                        // 중복된 이메일이 있으나, 탈퇴 하지 않음
-                        if (rows[0].member_secede === 0)
-                            res.status(200).send("OK2")
-                        else
-                            // member_secede === 1 탈퇴 한 경우
-                            res.status(401).send(false)
-                    }
-                })
-            }
-        })
-    }
-})
-
-// 2. 회원가입 이용 약관
+/**
+ * 사용자 API
+ */
+// 1. 회원가입 이용 약관
 app.post("/member/agree", (req, res) => {
     let chosenAgree = req.body.chosen_agree
     if (chosenAgree === undefined)
@@ -105,13 +82,13 @@ app.post("/member/agree", (req, res) => {
         res.cookie("chosen_agree", chosenAgree, {}).status(200).send(true)
 })
 
-// 3. 이메일 인증메일 보내기
+// 2. 이메일 인증메일 보내기
 app.post("/member/email", (req, res) => {
     let tempMemberEmail = req.body.rec_email
     if (tempMemberEmail === undefined || req.cookies.chosen_agree === undefined)
         res.status(401).send(false)
     else {
-        let emailCheckQuery = "select member_email, member_secede from member where member_email = ?;"
+        let emailCheckQuery = "select member_email, member_secede, member_ban from member where member_email = ?;"
         let selectParam = [tempMemberEmail]
         conn.query(emailCheckQuery, selectParam, function (error, rows, fields) {
             if (error)
@@ -119,17 +96,17 @@ app.post("/member/email", (req, res) => {
             else {
                 let isEmail = rows.length === 0 ? null : rows[0].member_email
                 memberCheck(isEmail).then(memberCheckValue => {
-                    crypto.generateKey().then(keyValue => {
-                        crypto.getSalt().then(salt => {
-                            crypto.encryptByHash(keyValue, salt).then(tempAuthKey => {
-                                regExp(tempAuthKey).then(authKey => {
-                                    let today = new Date()
-                                    let tomorrow = new Date(today.setDate(today.getDate() + 1))
-                                    let urlAuthEmail = "http://localhost:3000/member/email-check/" + authKey
-                                    let insertEmailAuth = "insert into email_auth(email_key, email_auth_flag, email_date, email_dispose, rec_email, temp_chosen_agree) values(?, ?, ?, ?, ?, ?);"
-                                    let insertParam = [authKey, 0, tomorrow, 0, tempMemberEmail, req.cookies.chosen_agree]
-                                    // 최초 가입 시.
-                                    if (memberCheckValue === 200) {
+                    // 최초 가입.
+                    if (memberCheckValue === 200) {
+                        crypto.generateKey().then(keyValue => {
+                            crypto.getSalt().then(salt => {
+                                crypto.encryptByHash(keyValue, salt).then(tempAuthKey => {
+                                    regExp(tempAuthKey).then(authKey => {
+                                        let today = new Date()
+                                        let tomorrow = new Date(today.setDate(today.getDate() + 1))
+                                        let urlAuthEmail = "http://localhost:3000/member/email-check/" + authKey
+                                        let insertEmailAuth = "insert into email_auth(email_key, email_auth_flag, email_date, email_dispose, rec_email, temp_chosen_agree) values(?, ?, ?, ?, ?, ?);"
+                                        let insertParam = [authKey, 0, tomorrow, 0, tempMemberEmail, req.cookies.chosen_agree]
                                         conn.query(insertEmailAuth, insertParam, function (error, rows, fields) {
                                             if (error)
                                                 console.error(error)
@@ -147,43 +124,60 @@ app.post("/member/email", (req, res) => {
                                                 }
                                             })
                                         })
-                                    }
-                                    // 탈퇴 후 가입 시.
-                                    else if (memberCheckValue === 401 && rows[0].member_secede === 1) {
-                                        conn.query(insertEmailAuth, insertParam, function (error, rows, fields) {
-                                            if (error)
-                                                console.error(error)
-                                            else
-                                                console.log("Success insert emailAuthData")
-                                        })
-                                        sendEmail(tempMemberEmail, urlAuthEmail).then(mailContents => {
-                                            transporter.sendMail(mailContents, function (error, info) {
-                                                if (error)
-                                                    console.error(error)
-                                                else {
-                                                    // 이메일 인증 코드 전송 완료.
-                                                    res.clearCookie("chosen_agree").status(200).send(true)
-                                                    console.log(info.response)
-                                                }
-                                            })
-                                        })
-                                    }
-                                    // 이미 가입 되어 있고, 탈퇴 하지 않은 경우.
-                                    else {
-                                        // memberCheckValue === 401 && rows[0].member_secede === 0
-                                        res.status(memberCheckValue).send(false)
-                                    }
+                                    })
                                 })
                             })
                         })
-                    })
+                    }  // 탈퇴 후 가입.
+                    else if (memberCheckValue === 401 && rows[0].member_secede === 1) {
+                        // 탈퇴 전 정지된 사용자인 경우.
+                        if (rows[0].member_ban === 1)
+                            res.status(401).send(false)
+                        // 탈퇴 전 정지된 사용자가 아닌 경우(재가입).
+                        else {
+                            crypto.generateKey().then(keyValue => {
+                                crypto.getSalt().then(salt => {
+                                    crypto.encryptByHash(keyValue, salt).then(tempAuthKey => {
+                                        regExp(tempAuthKey).then(authKey => {
+                                            let today = new Date()
+                                            let tomorrow = new Date(today.setDate(today.getDate() + 1))
+                                            let urlAuthEmail = "http://localhost:3000/member/email-check/" + authKey
+                                            let insertEmailAuth = "insert into email_auth(email_key, email_auth_flag, email_date, email_dispose, rec_email, temp_chosen_agree) values(?, ?, ?, ?, ?, ?);"
+                                            let insertParam = [authKey, 0, tomorrow, 0, tempMemberEmail, req.cookies.chosen_agree]
+                                            conn.query(insertEmailAuth, insertParam, function (error, rows, fields) {
+                                                if (error)
+                                                    console.error(error)
+                                                else
+                                                    console.log("Success insert emailAuthData")
+                                            })
+                                            sendEmail(tempMemberEmail, urlAuthEmail).then(mailContents => {
+                                                transporter.sendMail(mailContents, function (error, info) {
+                                                    if (error)
+                                                        console.error(error)
+                                                    else {
+                                                        // 이메일 인증 코드 전송 완료.
+                                                        res.clearCookie("chosen_agree").status(200).send(true)
+                                                        console.log(info.response)
+                                                    }
+                                                })
+                                            })
+                                        })
+                                    })
+                                })
+                            })
+                        }
+                    }
+                    // 이미 가입 되어 있고, 탈퇴하지 않은 회원.
+                    else
+                        // memberCheckValue === 401 && rows[0].member_secede === 0
+                        res.status(memberCheckValue).send(false)
                 })
             }
         })
     }
 })
 
-// 4. 이메일 인증
+// 3. 이메일 인증
 app.get(/email-check/, (req, res) => {
     let parse = req.path.split("/")
     let authKey = parse[3]
@@ -246,7 +240,7 @@ app.get(/email-check/, (req, res) => {
     }
 })
 
-// 5. 회원가입
+// 4. 회원가입
 app.post("/member", (req, res) => {
     let authKey = req.session.auth_key
     let memberName = req.body.member_name
@@ -395,7 +389,7 @@ app.post("/member", (req, res) => {
     }
 })
 
-// 6. 로그인
+// 5. 로그인
 app.post("/member/login", (req, res) => {
     let memberEmail = req.body.member_email
     let tempPw = req.body.member_pw
@@ -412,41 +406,47 @@ app.post("/member/login", (req, res) => {
                     res.status(401).send(false)
                 // 회원 테이블에 입력한 이메일이 있고 탈퇴 여부가 0이면(탈퇴하지 않았으면).
                 else if (memberCheckValue === 401 && rows[0].member_secede === 0) {
-                    crypto.encryptByHash(tempPw, rows[0].member_salt).then(memberPw => {
-                        // 입력한 비밀번호 해시 암호화 한 값과 회원 테이블에 해당 이메일의 비밀번호 값 비교 및 정지여부 확인.
-                        if (memberPw === rows[0].member_pw && rows[0].member_ban === 0) {
-                            req.session.member_email = rows[0].member_email
-                            req.session.member_pw = rows[0].member_pw
-                            req.session.save(() => {
-                                // TODO 메인 페이지로 이동
-                                res.redirect(307, "/")
-                            })
+                    // 정지된 회원인 경우.
+                    if (rows[0].member_ban === 1)
+                        // TODO 로그인 실패(정지된 회원인 경우). 다시 로그인 화면으로 redirect
+                        res.redirect(401, "/")
+                    else {
+                        crypto.encryptByHash(tempPw, rows[0].member_salt).then(memberPw => {
+                            // 입력한 비밀번호 해시 암호화 한 값과 회원 테이블에 해당 이메일의 비밀번호 값 비교 및 정지여부 확인.
+                            if (memberPw === rows[0].member_pw) {
+                                req.session.member_email = rows[0].member_email
+                                req.session.member_pw = rows[0].member_pw
+                                req.session.save(() => {
+                                    // TODO 메인 페이지로 이동
+                                    res.redirect(307, "/")
+                                })
 
-                            let memberLogUpdate = "update member_log set member_login_lately = ? where member_log.member_email = ?;"
-                            let today = new Date()
-                            let memberLogParam = [today, rows[0].member_email]
-                            conn.query(memberLogUpdate, memberLogParam, function (error, rows, fields) {
-                                if (error)
-                                    console.error(error)
-                                else
-                                    console.log("update query is executed.")
-                            })
+                                let memberLogUpdate = "update member_log set member_login_lately = ? where member_log.member_email = ?;"
+                                let today = new Date()
+                                let memberLogParam = [today, rows[0].member_email]
+                                conn.query(memberLogUpdate, memberLogParam, function (error, rows, fields) {
+                                    if (error)
+                                        console.error(error)
+                                    else
+                                        console.log("update query is executed.")
+                                })
 
-                            let memberLoginLogInsert = "insert into member_login_log(member_email, member_login) values(?, ?);"
-                            let memberLoginLogParam = [rows[0].member_email, today]
-                            conn.query(memberLoginLogInsert, memberLoginLogParam, function (error, rows, fields) {
-                                if (error)
-                                    console.error(error)
-                                else
-                                    console.log("insert query is executed.")
-                            })
-                        } else {
-                            // TODO 로그인 실패. 다시 로그인 화면으로 redirect
-                            res.redirect(401, "/")
-                        }
-                    })
+                                let memberLoginLogInsert = "insert into member_login_log(member_email, member_login) values(?, ?);"
+                                let memberLoginLogParam = [rows[0].member_email, today]
+                                conn.query(memberLoginLogInsert, memberLoginLogParam, function (error, rows, fields) {
+                                    if (error)
+                                        console.error(error)
+                                    else
+                                        console.log("insert query is executed.")
+                                })
+                            } else {
+                                // TODO 로그인 실패(비밀번호가 틀린 경우). 다시 로그인 화면으로 redirect
+                                res.redirect(401, "/")
+                            }
+                        })
+                    }
                 } else {
-                    // member_secede === 1인 경우.(회원 탈퇴 한 경우)
+                    // TODO 로그인 실퍠(탈퇴회원인 경우). 다시 로그인 화면으로 redirect
                     res.redirect(401, "/")
                 }
             })
@@ -454,7 +454,7 @@ app.post("/member/login", (req, res) => {
     }
 })
 
-// 7. 로그아웃
+// 6. 로그아웃
 app.post("/member/logout", (req, res) => {
     req.session.destroy(() => {
         // TODO 로그인 페이지로 이동
@@ -462,7 +462,7 @@ app.post("/member/logout", (req, res) => {
     })
 })
 
-// 8. 회원탈퇴
+// 7. 회원탈퇴
 app.delete("/member/secede", (req, res) => {
     let sessionEmail = req.session.member_email
     if (sessionEmail === undefined)
@@ -500,7 +500,7 @@ app.delete("/member/secede", (req, res) => {
     }
 })
 
-// 9. 비밀번호 찾기
+// 8. 비밀번호 찾기
 app.post("/member/pw/find", (req, res) => {
     let tempEmail = req.body.member_email
     if (tempEmail === undefined)
@@ -563,7 +563,7 @@ app.post("/member/pw/find", (req, res) => {
     }
 })
 
-// 10. 비밀번호 재설정 바로가기
+// 9. 비밀번호 재설정 바로가기
 app.get(/reset-redirect/, (req, res) => {
     let parse = req.path.split("/")
     let pwKey = parse[4]
@@ -619,7 +619,7 @@ app.get(/reset-redirect/, (req, res) => {
     }
 })
 
-// 11. 비밀번호 재설정
+// 10. 비밀번호 재설정
 app.patch("/member/pw/reset", (req, res) => {
     let newPw = req.body.member_pw
     let pwKey = req.session.pwKey
@@ -690,9 +690,78 @@ app.patch("/member/pw/reset", (req, res) => {
     }
 })
 
+/**
+ * 관리자 API
+ */
+// 1. 사용자 조회
+app.post("/admin/member-check", (req, res) => {
+    let checkEmail = req.body.member_email
+    if (checkEmail === undefined)
+        res.status(401).send(false)
+    else {
+        let emailCheckSql = "select member_email, member_secede, member_ban from member where member_email = ?;"
+        let selectParam = [checkEmail]
+        conn.query(emailCheckSql, selectParam, function (error, rows, fields) {
+            if (error)
+                console.error(error)
+            else {
+                let isEmail = rows.length === 0 ? null : rows[0].member_email
+                memberCheck(isEmail).then(value => {
+                    // 중복된 이메일이 없음
+                    if (value === 200)
+                        res.status(200).send("empty")
+                    else if (value === 401 && rows[0].member_secede === 0) {
+                        // 정지되지 않은 회원.(정상적인 회원)
+                        if (rows[0].member_ban === 0)
+                            res.status(200).send("OK")
+                        else
+                            // member_ban === 1 정지된 회원
+                            res.status(401).send("ban")
+                    } else {
+                        // 탈퇴한 회원
+                        res.status(401).send("secede")
+                    }
+                })
+            }
+        })
+    }
+})
+
+/**
+ * 문의게시판 API
+ */
+
+/**
+ * 공지사항 API
+ */
+
+/**
+ * 고객센터 API
+ */
+
+/**
+ * 아이디어 API
+ */
+
+/**
+ * 공고정보게시판 API
+ */
+
+/**
+ * 포인트 API
+ */
+
+/**
+ * 관리자 API
+ */
+
+/**
+ * 페이지네이션 API
+ */
+
 //임시 라우터
 app.post("/", (req, res) => {
-    res.send(200)
+    res.send(req.body)
 })
 
 app.listen(port, () => {

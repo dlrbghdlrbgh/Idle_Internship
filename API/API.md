@@ -1,19 +1,6 @@
 ### * API 개발 진행률 11/72
 
 # 사용자 API
-## 사용자 조회
-* URL : http://{IP}:{PORT}/member/check
-* Method : POST
-* URL Params
-    1. Key : member_email, Value : 확인 할 member_email
-* Description : 확인 해야 할 member_email이 사용자 테이블에 존재하는지 검사
-* Success Response
-    1. Code : 200
-    2. Content : true
-* Error Response
-    1. Code : 401
-    2. Content : false
-
 ## 회원 가입 이용약관
 * URL : http://{IP}:{PORT}/member/agree
 * Method : POST
@@ -178,18 +165,7 @@
 * Error Response
     1. Code : 400
     2. Content : false
-
-## 사용자 포인트 조회
-* URL : http://{IP}:{PORT}/member/mypoint
-* Method : GET
-* Description : 현재 세션의 member_email에 해당하는 포인트 관련 정보 조회
-* Success Response
-    1. Code : 200
-    2. Content : true
-* Error Response
-    1. Code : 400
-    2. Content : false
-
+  
 ## 사용자 아이디어 조회
 * URL : http://{IP}:{PORT}/member/myidea
 * Method : GET
@@ -215,6 +191,19 @@
     2. Content : false
 
 # 관리자 API
+## 사용자 조회
+* URL : http://{IP}:{PORT}/admin/member-check
+* Method : POST
+* URL Params
+  1. Key : member_email, Value : 확인 할 member_email
+* Description : 관리자 페이지에서 특정 사용자 조회.
+* Success Response
+  1. Code : 200
+  2. Content : true
+* Error Response
+  1. Code : 401
+  2. Content : false
+  
 ## 관리자 조회
 * URL : http://{IP}:{PORT}/admin/check
 * Method : GET
@@ -898,9 +887,9 @@
 
 # 포인트 API
 ## 포인트 현황 조회
-* URL : http://{IP}:{PORT}/point/now
+* URL : http://{IP}:{PORT}/{admin/member}/point/now
 * Method : GET
-* Description : 현재 세션의 이메일에 해당하는 사용자의 순위, 현재 포인트, 누적 포인트, 사용 포인트 조회
+* Description : 이메일에 해당하는 사용자의 순위, 현재 포인트, 누적 포인트, 사용 포인트 조회
 * Success Response
     1. Code : 200
     2. Content : true
@@ -909,9 +898,9 @@
     2. Content : false
 
 ## 포인트 사용내역 조회
-* URL : http://{IP}:{PORT}/point/use-history
+* URL : http://{IP}:{PORT}/{admin/member}/point/use-history
 * Method : GET
-* Description : 현재 세션의 이메일에 해당하는 사용자의 포인트 사용내역 조회
+* Description : 이메일에 해당하는 사용자의 포인트 사용내역 조회
 * Success Response
     1. Code : 200
     2. Content : true
@@ -920,9 +909,9 @@
     2. Content : false
 
 ## 포인트 적립내역 조회
-* URL : http://{IP}:{PORT}/point/point-history
+* URL : http://{IP}:{PORT}/{admin/member}/point/point-history
 * Method : GET
-* Description : 현재 세션의 이메일에 해당하는 사용자의 아이디어 제목(적립 내역), 얻은 포인트, 적립 날짜 조회
+* Description : 용자의 아이디어 제목(적립 내역), 얻은 포인트, 적립 날짜 조회
 * Success Response
     1. Code : 200
     2. Content : true
@@ -931,11 +920,11 @@
     2. Content : false
 
 ## 포인트 사용
-* URL : http://{IP}:{PORT}/use-point
+* URL : http://{IP}:{PORT}/{admin/member}/use-point
 * Method : PUT
 * URL Params
     1. Key : use_point, Value : 사용할 포인트
-* Description : 현재 세션에 로그인되어 있는 사용자 이메일에 해당하는 사용 포인트, 사용자 포인트(누적 포인트 - 사용 포인트), 포인트 사용 날짜, 포인트 사용 내역 업데이트 / 포인트 순위는 7일 간격으로 정렬 알고리즘 사용 후 업데이트
+* Description : 사용자 이메일에 해당하는 사용 포인트, 사용자 포인트(누적 포인트 - 사용 포인트), 포인트 사용 날짜, 포인트 사용 내역 업데이트 / 포인트 순위는 7일 간격으로 정렬 알고리즘 사용 후 업데이트
 * Success Response
     1. Code : 200
     2. Content : true
@@ -945,7 +934,7 @@
 
 # 페이지네이션 API
 ## 페이지네이션
-* URL : http://{IP}:{PORT}/{게시판 이름}/pagination
+* URL : http://{IP}:{PORT}/{admin/member}/{게시판 이름}/pagination
 * Method : GET
 * URL Params
     1. Key : pageNum, Value : 조회할 게시글 페이지 번호
