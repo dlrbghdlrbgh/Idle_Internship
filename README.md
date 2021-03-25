@@ -55,6 +55,27 @@
     5. Mac인 경우 : DEBUG=프로젝트명:* npm start, Windows인 경우 : set DEBUG=프로젝트명:* * npm start
 </pre>
 
+## 2.1.2 express-generator hierarchy
+<pre>
+  .
+  ├── app.js                     
+  ├── bin 
+  │   └── www
+  ├── package.json
+  ├── public
+  │   ├── images
+  │   ├── javascripts
+  │   └── stylesheets
+  │       └── style.css
+  ├── routes                 
+  │   ├── index.js      
+  │   ├── users.js            
+  └── views
+      ├── error.pug
+      ├── index.pug
+      └── layout.pug  
+</pre>
+
 ## 3. vscode Node.js 개발환경 구축
 
 ![스크린샷 2021-03-03 오후 2 35 25](https://user-images.githubusercontent.com/77099686/109757939-1e158a00-7c2e-11eb-92d7-303886527a23.png)
