@@ -37,6 +37,24 @@
   2. Node.js 버전 변경 : nvm use 노드 버전
 </pre>
 
+## 2.1.1 express & express-generator 설치
+<pre>
+    Node.js가 이미 설치되어 있다고 가정.
+    
+    express 설치 방법.
+    1. mkdir 프로젝트명
+    2. cd 프로젝트명
+    3. npm init
+    4. npm install express --save(종속 항목 추가) or npm install express(종속 항목 추가x)
+
+    express-generator를 활용해서 골격 생성 방법
+    1. npm install express-generator -g
+    2. express --view=pug 프로젝트명(view 부분 생략시 기본 jade)
+    3. cd 프로젝트명
+    4. npm install
+    5. Mac인 경우 : DEBUG=프로젝트명:* npm start, Windows인 경우 : set DEBUG=프로젝트명:* * npm start
+</pre>
+
 ## 3. vscode Node.js 개발환경 구축
 
 ![스크린샷 2021-03-03 오후 2 35 25](https://user-images.githubusercontent.com/77099686/109757939-1e158a00-7c2e-11eb-92d7-303886527a23.png)
