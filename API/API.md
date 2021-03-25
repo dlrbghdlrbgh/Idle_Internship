@@ -1,4 +1,4 @@
-### * API 개발 진행률 11/72(15%)
+### * API 개발 진행률 15/72(20%)
 
 # 사용자 API
 ## 회원 가입 이용약관
@@ -136,11 +136,11 @@
     2. Content : false
 
 ## 회원정보수정
-* URL : http://{IP}:{PORT}/member/info-reset
+* URL : http://{IP}:{PORT}/member/update
 * Method : POST
 * URL Params
     1. Key : member_pw, Value : 입력한 member_pw
-* Description : 사용자 테이블에서 현재 세션의 member_id와 입력한 member_pw 조회 후 일치 하면 상세 페이지로 이동
+* Description : 사용자 테이블에서 현재 세션의 member_email의 입력한 member_pw 조회 후 일치 하면 상세 페이지로 이동
 * Success Response
     1. Code : 200
     2. Content : true
@@ -149,16 +149,17 @@
     2. Content : false
 
 ## 회원정보수정 상세
-* URL : http://{IP}:{PORT}/member/info-reset-detail
-* Method : PUT
+* URL : http://{IP}:{PORT}/member/update-detail
+* Method : PATCH
 * URL Params
     1. Key : member_name, Value : 입력한 member_name
     2. Key : member_pw, Value : 입력한 member_pw
     3. Key : member_sex, Value : 입력한 member_sex
-    4. Key : member_phone, Value : 입력한 member_phone
-    5. Key : member_company, Value : 입력한 member_company
-    6. Key : member_state, Value : 입력한 member_state
-* Description : 사용자에 대한 정보 수정, 비밀번호 2개 값 확인 후 API 호출 or alert
+    4. Key : member_birth, Value : 입력한 member_birth 
+    5. Key : member_phone, Value : 입력한 member_phone
+    6. Key : member_company, Value : 입력한 member_company
+    7. Key : member_state, Value : 입력한  member_state
+* Description : 현재 세션의 사용자에 대한 정보 수정, 비밀번호 2개 값 확인 후 API 호출 or alert, 수정완료 후 마이페이지로 redirect
 * Success Response
     1. Code : 200
     2. Content : true
@@ -179,9 +180,9 @@
     1. Code : 400
     2. Content : false
 
-## 관심 사업
-* URL : http://{IP}:{PORT}/member/inter-anno
-* Method : POST
+## 관심 사업 조회
+* URL : http://{IP}:{PORT}/member/marked
+* Method : GET
 * Description : 현재 세션의 사용자 이메일 조회 후 해당 사용자가 즐겨찾기한 공고를 조회 함
 * Success Response
     1. Code : 200

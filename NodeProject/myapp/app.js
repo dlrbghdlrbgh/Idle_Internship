@@ -228,7 +228,10 @@ app.get(/email-check/, (req, res) => {
                                 req.session.auth_key = authKey
                                 //TODO 회원 가입 페이지로 redirect.
                                 req.session.save(function (error) {
-                                    res.status(200).send(true)
+                                    if (error)
+                                        console.error(error)
+                                    else
+                                        res.status(200).send(true)
                                 })
                             } else // 키 불일치.
                                 res.status(401).send(false)
@@ -243,16 +246,16 @@ app.get(/email-check/, (req, res) => {
 // 4. 회원가입
 app.post("/member", (req, res) => {
     let authKey = req.session.auth_key
-    let memberName = req.body.member_name
-    let memberSex = req.body.member_sex
-    let memberBirth = req.body.member_birth
-    let memberCompany = req.body.member_company
-    let memberState = req.body.member_state
-    let memberPw = req.body.member_pw
-    let memberPhone = req.body.member_phone
-    if (authKey === undefined || memberName === undefined || memberSex === undefined || memberBirth === undefined || memberCompany === undefined || memberState === undefined || memberPw === undefined || memberPhone === undefined)
+    if (authKey === undefined || Object.keys(req.body).length === 0)
         res.status(401).send(false)
     else {
+        let memberName = req.body.member_name
+        let memberSex = req.body.member_sex
+        let memberBirth = req.body.member_birth
+        let memberCompany = req.body.member_company
+        let memberState = req.body.member_state
+        let memberPw = req.body.member_pw
+        let memberPhone = req.body.member_phone
         // 인증 키에 해당하는 사용자 이메일로 사용자 테이블 조회.
         let recEmailSql = "select rec_email, temp_chosen_agree from email_auth where email_key = ?;"
         let recEmailParam = [authKey]
@@ -289,9 +292,12 @@ app.post("/member", (req, res) => {
                                                         console.log("Insert Into member Query is Executed.")
                                                         req.session.member_email = tempEmail
                                                         req.session.member_pw = encryptedPw
-                                                        req.session.save(() => {
-                                                            // TODO 메인 페이지로 redirect
-                                                            res.redirect(307, "/")
+                                                        req.session.save(function (error) {
+                                                            if (error)
+                                                                console.error(error)
+                                                            else
+                                                                // TODO 메인 페이지로 redirect
+                                                                res.redirect(307, "/")
                                                         })
 
                                                         delete req.session.auth_key
@@ -335,13 +341,18 @@ app.post("/member", (req, res) => {
                                                         console.log("update query is executed.")
                                                         req.session.member_email = newEmail
                                                         req.session.member_pw = encryptedPw
-                                                        req.session.save(() => {
-                                                            // TODO 메인 페이지로 redirect
-                                                            res.redirect(307, "/")
+                                                        req.session.save(function (error) {
+                                                            if (error)
+                                                                console.error(error)
+                                                            else
+                                                                // TODO 메인 페이지로 redirect
+                                                                res.redirect(307, "/")
                                                         })
 
                                                         delete req.session.auth_key
                                                         req.session.save(function (error) {
+                                                            if (error)
+                                                                console.error(error)
                                                         })
                                                     }
                                                 })
@@ -416,9 +427,12 @@ app.post("/member/login", (req, res) => {
                             if (memberPw === rows[0].member_pw) {
                                 req.session.member_email = rows[0].member_email
                                 req.session.member_pw = rows[0].member_pw
-                                req.session.save(() => {
-                                    // TODO 메인 페이지로 이동
-                                    res.redirect(307, "/")
+                                req.session.save(function (error) {
+                                    if (error)
+                                        console.error(error)
+                                    else
+                                        // TODO 메인 페이지로 이동
+                                        res.redirect(307, "/")
                                 })
 
                                 let memberLogUpdate = "update member_log set member_login_lately = ? where member_log.member_email = ?;"
@@ -456,9 +470,12 @@ app.post("/member/login", (req, res) => {
 
 // 6. 로그아웃
 app.post("/member/logout", (req, res) => {
-    req.session.destroy(() => {
-        // TODO 로그인 페이지로 이동
-        res.redirect(307, "/")
+    req.session.destroy(function (error) {
+        if (error)
+            console.error(error)
+        else
+            // TODO 로그인 페이지로 이동
+            res.redirect(307, "/")
     })
 })
 
@@ -485,9 +502,12 @@ app.delete("/member/secede", (req, res) => {
                                 console.error(error)
                             else {
                                 console.log("update query is executed.")
-                                req.session.destroy(() => {
-                                    // TODO 메인 페이지로 이동
-                                    res.status(200).send("Success secede.")
+                                req.session.destroy(function (error){
+                                    if (error)
+                                        console.error(error)
+                                    else
+                                        // TODO 메인 페이지로 이동
+                                        res.status(200).send("Success secede.")
                                 })
                             }
                         })
@@ -603,8 +623,11 @@ app.get(/reset-redirect/, (req, res) => {
                             // TODO 정상 접근, 재설정 페이지로 바로가기.
                             else {
                                 req.session.pwKey = rows[0].pw_key
-                                req.session.save(() => {
-                                    res.status(200).send(true)
+                                req.session.save(function (error) {
+                                    if (error)
+                                        console.error(error)
+                                    else
+                                        res.status(200).send(true)
                                 })
                             }
                         }
@@ -690,6 +713,126 @@ app.patch("/member/pw/reset", (req, res) => {
     }
 })
 
+// 11. 회원정보 수정
+app.post("/member/update", (req, res) => {
+    let memberPw = req.body.member_pw
+    let memberEmail = req.session.member_email
+    if (memberPw === undefined || memberEmail === undefined)
+        res.status(401).send(false)
+    else {
+        let compareSql = "select member_pw, member_salt from member where member_email = ?"
+        let compareParam = [memberEmail]
+        conn.query(compareSql, compareParam, function (error, rows, fields) {
+            if (error)
+                console.error(error)
+            else {
+                if (rows.length === 0)
+                    res.status(401).send(false)
+                else {
+                    crypto.encryptByHash(memberPw, rows[0].member_salt).then(encryptedPw => {
+                        if (encryptedPw !== rows[0].member_pw)
+                            res.status(401).send(false)
+                        else
+                            // TODO 회원정보 상세 페이지로 redirect.
+                            res.redirect(307, "/")
+                    })
+                }
+            }
+        })
+    }
+})
+
+// 12. 회원정보 수정 상세
+app.patch("/member/update-detail", (req, res) => {
+    let memberEmail = req.session.member_email
+    if (memberEmail === undefined || Object.keys(req.body).length === 0)
+        res.status(401).send(false)
+    else {
+        let memberName = req.body.member_name
+        let memberPw = req.body.member_pw
+        let memberSex = req.body.member_sex
+        let memberBirth = req.body.member_birth
+        let memberPhone = req.body.member_phone
+        let memberCompany = req.body.member_company
+        let memberState = req.body.member_state
+        let updateSql = "update member set member_name = ?, member_pw = ?, member_sex = ?, member_birth = ?, member_phone = ?, member_company = ?, member_state = ?, member_salt = ? where member_email = ?"
+        let updateParam
+        crypto.getSalt().then(salt => {
+            crypto.encryptByHash(memberPw, salt).then(encryptedPw => {
+                crypto.encryption(memberPhone).then(encryptedPhone => {
+                    updateParam = [memberName, encryptedPw, memberSex, memberBirth, encryptedPhone, memberCompany, memberState, salt, memberEmail]
+                    conn.query(updateSql, updateParam, function (error, rows, fields) {
+                        if (error)
+                            console.error(error)
+                        else {
+                            req.session.member_pw = encryptedPw
+                            req.session.save(function (err) {
+                                if (err)
+                                    console.error(err)
+                                else
+                                    // TODO 마이페이지로 redirect.
+                                    res.status(201).send(true)
+                            })
+                        }
+                    })
+                })
+            })
+        })
+    }
+})
+
+// 13. 사용자 아이디어 조회
+app.get("/member/myidea", (req, res) => {
+    let sessionEmail = req.session.member_email
+    if (sessionEmail === undefined)
+        res.status(401).send(false)
+    else {
+        let ideaSql = "select idea_title, idea_date from idea where member_email = ?"
+        let ideaParam = [sessionEmail]
+        conn.query(ideaSql, ideaParam, function (error, rows, fields) {
+            if (error)
+                console.error(error)
+            else {
+                if (rows.length === 0)
+                    res.status(401).send(false)
+                else {
+                    res.send(rows)
+                }
+            }
+        })
+    }
+})
+
+// 14. 관심 사업 조회
+app.get("/member/marked", (req, res) => {
+    let sessionEmail = req.session.member_email
+    if (sessionEmail === undefined)
+        res.status(401).send(false)
+    else {
+        let markedSql = "select ia.anno_id, anno_title, anno_date from inter_anno as ia join anno as a on ia.anno_id = a.anno_id where member_email = ?;"
+        let markedParam = [sessionEmail]
+        conn.query(markedSql, markedParam, function (error, rows, fields) {
+            if (error)
+                console.error(error)
+            else {
+                if (rows.length === 0)
+                    res.status(401).send(false)
+                else {
+                    let annoInfo = []
+                    for (let i=0; i<rows.length; i++) {
+                        annoInfo[i] = {
+                            "anno_id": rows[i].anno_id - 1233,
+                            "anno_title": rows[i].anno_title,
+                            "anno_date": rows[i].anno_date
+                        }
+                    }
+                    res.status(201).send(annoInfo)
+                }
+            }
+        })
+    }
+})
+
 /**
  * 관리자 API
  */
@@ -749,10 +892,6 @@ app.post("/admin/member-check", (req, res) => {
 
 /**
  * 포인트 API
- */
-
-/**
- * 관리자 API
  */
 
 /**
